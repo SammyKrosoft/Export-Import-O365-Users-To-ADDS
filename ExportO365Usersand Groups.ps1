@@ -1,3 +1,4 @@
+
 # Setup your environment variables/parameters such as domain name, etc...
 ## your domain name to replace to make the UPN
 $YourDomain = "@canadadrey.ca"
@@ -5,10 +6,27 @@ $YourDomain = "@canadadrey.ca"
 $ExportDirectory = "c:\temp"
 
 #Connect to Exchange Online
-Connect-ExchangeOnline
+try{
+    Write-Host "Checking if already connected to Exchange Online ..." -ForegroundColor Green
+    Get-Mailbox | Select -First 1 | Out-Null
+    Write-Host "Already connected !" -ForegroundColor Yellow
+    }
+catch{
+    Write-Host "Not connected to Exchange Online ... connecting..." -ForegroundColor Red
+    Connect-ExchangeOnline
+
+}
 
 #connect Azure AD
-Connect-MsolService -Credential $UserCredential
+try {
+    Write-Host "Checking if already connected to MS Online ..." -ForegroundColor Green
+    Get-MsolCompanyInformation | Out-Null
+    Write-Host "Already connected !" -ForegroundColor Yellow
+    }
+catch{
+     Write-Host "Not connected to MS Online ... connecting..." -ForegroundColor Red
+    Connect-MsolService
+    }
 
 #Random password generator
 Function random-password ($length = 8)
