@@ -1,4 +1,3 @@
-
 # Setup your environment variables/parameters such as domain name, etc...
 ## your domain name to replace to make the UPN
 $YourDomain = "@canadadrey.ca"
@@ -80,7 +79,7 @@ foreach($user in $mailboxusers)
         SignInName = $MOL.SignInName
         Title = $MOL.Title
         UserPrincipalName = $UPN.ToLower()
-        SAMAccountName = ($UPN.Replace($YourDomain,"")).ToLower()
+        SAMAccountName = ($UPN.ToLower().Replace($YourDomain,"")).ToLower()
         #Password = random-password
         # Comment the Password line above, and uncomment below in case you want to generate your own temp password - 
         Password = "P@ssw0rd123" 
@@ -100,6 +99,8 @@ $GroupResults = Get-MsolGroup -All
 
 # Export users to csv
 $Results | Select-Object Name, SAMAccountName, DisplayName, Emailaddress, UserPrincipalName, SignInName, Password, PasswordNeverExpires, FirstName, LastName, Department, Office, Title | Sort Department,SignInName | Export-Csv -Path $DataPath -Encoding UTF8 -NoTypeInformation
+
+notepad $DataPath
 
 # Export groups to csv
 $GroupResults | Select-Object ObjectId, DisplayName, EmailAddress, GroupType, IsSystem | sort DisplayName, GroupType | Export-Csv -Path $GroupDataPath -Encoding UTF8 -NoTypeInformation
