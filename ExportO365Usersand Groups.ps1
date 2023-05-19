@@ -1,13 +1,11 @@
 # Setup your environment variables/parameters such as domain name, etc...
 ## your domain name to replace to make the UPN
-$YourDomain = "@yourdomain.com"
+$YourDomain = "@canadadrey.ca"
 ## export directory for the CSV file - DO NOT PUT BACKSLASH AT THE END
 $ExportDirectory = "c:\temp"
 
-#import office 365 session
-$UserCredential = Get-Credential
-$Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $UserCredential -Authentication Basic -AllowRedirection
-Import-PSSession $Session
+#Connect to Exchange Online
+Connect-ExchangeOnline
 
 #connect Azure AD
 Connect-MsolService -Credential $UserCredential
@@ -31,11 +29,12 @@ Function random-password ($length = 8)
 }
 
 #Export User data from o365
-$DataPath = "$ExportDirectory\o365UserData.csv"
-$GroupDataPath = "$ExportDirectory\o365GroupData.csv"
+$DateString = Get-Date -F "yyyyMMddTHHmmss"
+$DataPath = "$ExportDirectory\o365UserData_$DateString.csv"
+$GroupDataPath = "$ExportDirectory\o365GroupData_$DateString.csv"
 $Results = @()
 
-$MailboxUsers = get-mailbox -resultsize unlimited 
+$MailboxUsers = get-mailbox -resultsize unlimited -Filter {Name -notlike "DiscoverySearchMailbox*"}
 
 # Get all users
 foreach($user in $mailboxusers)
@@ -43,16 +42,20 @@ foreach($user in $mailboxusers)
     try 
     {
         $UPN = $user.userprincipalname
+        $UPN
         $username = $user.name
+        $UserName
         $MOL = Get-MsolUser -userprincipalname $UPN | Select-Object Department, DisplayName, FirstName, LastName, Office, PasswordNeverExpires, SignInName, Title
-        $EmailAddress = Get-Mailbox -ResultSize Unlimited -identity $UserName |Select-Object DisplayName,PrimarySmtpAddress, @{Name="EmailAddresses";Expression={$_.EmailAddresses |Where-Object {$_.PrefixString -ceq "smtp"} | ForEach-Object {$_.SmtpAddress}}}
+        $MOL
+        $EmailAddress = $User |Select-Object DisplayName,PrimarySmtpAddress, @{Name="EmailAddresses";Expression={$_.EmailAddresses |Where-Object {$_.StartsWith("smtp") -or $_.StartsWith("X500")}}}
+        $EmailAddress
 
         $Properties = @{
         Name = $user.name
         Department = $MOL.Department
         Displayname = $MOL.DisplayName
         EmailAddress = $Emailaddress.PrimarySmtpAddress
-        FirstName = $MOL.FirstNsame
+        FirstName = $MOL.FirstName
         LastName = $MOL.LastName
         Office = $MOL.Office
         PasswordNeverExpires = $MOL.Passwordneverexpires
@@ -60,9 +63,9 @@ foreach($user in $mailboxusers)
         Title = $MOL.Title
         UserPrincipalName = $UPN.ToLower()
         SAMAccountName = ($UPN.Replace($YourDomain,"")).ToLower()
-        Password = random-password
+        #Password = random-password
         # Comment the Password line above, and uncomment below in case you want to generate your own temp password - 
-        # $Password = "000000" 
+        Password = "P@ssw0rd123" 
         }
 
         $Results += New-Object psobject -Property $properties
@@ -70,13 +73,15 @@ foreach($user in $mailboxusers)
     catch 
     {
         Write-Host "Exception!" + $user.userprincipalname
+        $Error[0]
+        $Error[1]
     }
 }
 # Get all groups from Azure AD
 $GroupResults = Get-MsolGroup -All
 
 # Export users to csv
-$Results | Select-Object Name, SAMAccountName, DisplayName, Emailaddress, UserPrincipalName, SignInName, Password, PasswordNeverExpires, FirstName, LastName, Department, Office, Title | Sort Department,SignInName | Export-Csv -Path $DataPath -Encoding UTF8
+$Results | Select-Object Name, SAMAccountName, DisplayName, Emailaddress, UserPrincipalName, SignInName, Password, PasswordNeverExpires, FirstName, LastName, Department, Office, Title | Sort Department,SignInName | Export-Csv -Path $DataPath -Encoding UTF8 -NoTypeInformation
 
 # Export groups to csv
-$GroupResults | Select-Object ObjectId, DisplayName, EmailAddress, GroupType, IsSystem | sort DisplayName, GroupType | Export-Csv -Path $GroupDataPath -Encoding UTF8
+$GroupResults | Select-Object ObjectId, DisplayName, EmailAddress, GroupType, IsSystem | sort DisplayName, GroupType | Export-Csv -Path $GroupDataPath -Encoding UTF8 -NoTypeInformation
