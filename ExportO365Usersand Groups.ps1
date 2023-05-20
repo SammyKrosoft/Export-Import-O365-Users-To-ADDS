@@ -1,3 +1,4 @@
+
 # Setup your environment variables/parameters such as domain name, etc...
 ## your domain name to replace to make the UPN
 $YourDomain = "@canadadrey.ca"
@@ -7,7 +8,7 @@ $ExportDirectory = "c:\temp"
 #Connect to Exchange Online
 try{
     Write-Host "Checking if already connected to Exchange Online ..." -ForegroundColor Green
-    Get-Mailbox | Select -First 1 | Out-Null
+    Get-Mailbox -ErrorAction Stop | Select -First 1 | Out-Null
     Write-Host "Already connected !" -ForegroundColor Yellow
     }
 catch{
@@ -19,7 +20,7 @@ catch{
 #connect Azure AD
 try {
     Write-Host "Checking if already connected to MS Online ..." -ForegroundColor Green
-    Get-MsolCompanyInformation | Out-Null
+    Get-MsolCompanyInformation -ErrorAction Stop | Out-Null
     Write-Host "Already connected !" -ForegroundColor Yellow
     }
 catch{
@@ -72,6 +73,7 @@ foreach($user in $mailboxusers)
         Department = $MOL.Department
         Displayname = $MOL.DisplayName
         EmailAddress = $Emailaddress.PrimarySmtpAddress
+        EmailAddresses = $Emailaddress.EmailAddresses
         FirstName = $MOL.FirstName
         LastName = $MOL.LastName
         Office = $MOL.Office
@@ -98,7 +100,7 @@ foreach($user in $mailboxusers)
 $GroupResults = Get-MsolGroup -All
 
 # Export users to csv
-$Results | Select-Object Name, SAMAccountName, DisplayName, Emailaddress, UserPrincipalName, SignInName, Password, PasswordNeverExpires, FirstName, LastName, Department, Office, Title | Sort Department,SignInName | Export-Csv -Path $DataPath -Encoding UTF8 -NoTypeInformation
+$Results | Select-Object Name, SAMAccountName, DisplayName, Emailaddress,EmailAddresses, UserPrincipalName, SignInName, Password, PasswordNeverExpires, FirstName, LastName, Department, Office, Title | Sort Department,SignInName | Export-Csv -Path $DataPath -Encoding UTF8 -NoTypeInformation
 
 notepad $DataPath
 
